@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PTCE & PTCB Prep Guide</title>
+    
+    <!-- Tailwind CSS for rapid, mobile-first styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for standard, recognizable icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom styles to ensure app-like feel and prevent text selection on UI elements */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; /* Prevent accidental text highlighting while tapping */
+        }
+        
+        /* Allow text selection only on actual study content so users can copy terms if needed */
+        .selectable-text {
+            user-select: text;
+        }
+
+        /* Hide scrollbar for cleaner look, but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Card flip animation essentials */
+        .flashcard-inner {
+            transition: transform 0.4s;
+            transform-style: preserve-3d;
+        }
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Top App Bar -->
+    <header class="bg-blue-600 text-white shadow-md z-10 pt-safe">
+        <div class="px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xl font-bold">
+                <i class="fa-solid fa-pills"></i>
+                <h1>PTCE Prep</h1>
+            </div>
+            <div class="text-sm font-medium bg-blue-700 px-3 py-1 rounded-full shadow-inner" id="header-subtitle">
+                Daily Review
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area (Scrollable) -->
+    <main class="flex-1 overflow-y-auto no-scrollbar pb-20 relative" id="main-content">
+        
+        <!-- View 1: Daily Quick Review -->
+        <section id="view-daily" class="h-full flex flex-col items-center justify-center p-4 active-view hidden">
+            
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col h-96 relative flashcard" id="flashcard">
+                
+                <div class="flashcard-inner w-full h-full relative">
+                    <!-- Front of Card (Question) -->
+                    <div class="flashcard-front bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center absolute w-full h-full">
+                        <span class="text-xs font-bold uppercase tracking-wider text-blue-500 mb-4" id="fc-category">Category</span>
+                        <h2 class="text-2xl font-bold text-slate-700 selectable-text" id="fc-question">Loading...</h2>
+                        
+                        <button onclick="app.flipCard()" class="absolute bottom-6 bg-blue-100 text-blue-700 hover:bg-blue-200 px-6 py-3 rounded-xl font-semibold transition-colors w-10/12 max-w-xs shadow-sm">
+                            Show Answer
+                        </button>
+                    </div>
+
+                    <!-- Back of Card (Answer) -->
+                    <div class="flashcard-back bg-blue-50 rounded-2xl p-6 flex flex-col items-center justify-center text-center absolute w-full h-full border-2 border-blue-200">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Answer</span>
+                        <p class="text-xl text-slate-800 font-medium selectable-text overflow-y-auto no-scrollbar max-h-48" id="fc-answer">Loading...</p>
+                        
+                        <div class="absolute bottom-6 flex gap-3 w-10/12 max-w-xs">
+                            <button onclick="app.flipCard()" class="flex-1 bg-white text-slate-600 border border-slate-300 hover:bg-slate-50 px-4 py-3 rounded-xl font-semibold transition-colors shadow-sm">
+                                Back
+                            </button>
+                            <button onclick="app.nextCard()" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 px-4 py-3 rounded-xl font-semibold transition-colors shadow-md flex justify-center items-center gap-2">
+                                Next <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-8 text-center text-slate-400 text-sm">
+                <p>Tap 'Show Answer' to reveal</p>
+                <p class="mt-1">Card <span id="fc-counter">1</span> of <span id="fc-total">X</span></p>
+            </div>
+        </section>
+
+        <!-- View 2: Study Modules -->
+        <section id="view-modules" class="p-4 hidden">
+            <!-- Module List (Grid) -->
+            <div id="module-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Specific Module Details (List of items) -->
+            <div id="module-details" class="hidden">
+                <button onclick="app.showModuleList()" class="mb-4 text-blue-600 font-semibold flex items-center gap-2 py-2">
+                    <i class="fa-solid fa-chevron-left"></i> Back to Modules
+                </button>
+                <h2 class="text-2xl font-bold text-slate-800 mb-4" id="active-module-title">Module Title</h2>
+                <div class="space-y-4" id="module-items-container">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </section>
+
+        <!-- View 3: Search -->
+        <section id="view-search" class="p-4 hidden h-full flex flex-col">
+            <div class="sticky top-0 bg-slate-50 pb-4 z-10">
+                <div class="relative shadow-sm rounded-xl">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-search text-slate-400"></i>
+                    </div>
+                    <input type="text" id="search-input" onkeyup="app.handleSearch()" placeholder="Search drugs, laws, sig codes..." 
+                        class="block w-full pl-11 pr-10 py-4 border border-slate-300 rounded-xl text-lg focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-slate-400 focus:outline-none transition-shadow">
+                    <button onclick="app.clearSearch()" id="clear-search-btn" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 hidden">
+                        <i class="fa-solid fa-circle-xmark text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto no-scrollbar pt-2">
+                <div id="search-results" class="space-y-3">
+                    <div class="text-center text-slate-400 mt-10">
+                        <i class="fa-solid fa-book-medical text-4xl mb-3 opacity-50"></i>
+                        <p>Type to search the PTCE database.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bg-white border-t border-slate-200 fixed bottom-0 w-full pb-safe z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <div class="flex justify-around items-center h-16">
+            
+            <button onclick="app.switchTab('daily')" class="nav-btn flex-1 flex flex-col items-center justify-center text-blue-600 transition-colors" data-target="daily">
+                <i class="fa-solid fa-bolt text-xl mb-1"></i>
+                <span class="text-xs font-medium">Daily</span>
+            </button>
+            
+            <button onclick="app.switchTab('modules')" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 transition-colors" data-target="modules">
+                <i class="fa-solid fa-layer-group text-xl mb-1"></i>
+                <span class="text-xs font-medium">Modules</span>
+            </button>
+            
+            <button onclick="app.switchTab('search')" class="nav-btn flex-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 transition-colors" data-target="search">
+                <i class="fa-solid fa-magnifying-glass text-xl mb-1"></i>
+                <span class="text-xs font-medium">Search</span>
+            </button>
+            
+        </div>
+    </nav>
+
+    <!-- Application Logic -->
+    <script>
+        // --- 1. THE DATABASE (Hardcoded JSON) ---
+        // Robust data grouped strictly by standard PTCB modules.
+        const ptcbData = [
+            // MODULE 1: Medications
+            { id: 1, module: "Medications", term: "Atorvastatin (Lipitor)", definition: "HMG-CoA reductase inhibitor. Used to lower cholesterol and triglycerides in the blood. Prevents cardiovascular disease." },
+            { id: 2, module: "Medications", term: "Levothyroxine (Synthroid)", definition: "Thyroid hormone replacement therapy. Used to treat hypothyroidism." },
+            { id: 3, module: "Medications", term: "Lisinopril (Prinivil, Zestril)", definition: "ACE Inhibitor. Used to treat high blood pressure (hypertension) and heart failure. Common side effect: dry cough." },
+            { id: 4, module: "Medications", term: "Metformin (Glucophage)", definition: "Biguanide. First-line medication for the treatment of type 2 diabetes. Should be taken with meals to prevent GI upset." },
+            { id: 5, module: "Medications", term: "Amlodipine (Norvasc)", definition: "Calcium Channel Blocker (CCB). Relaxes blood vessels to treat hypertension and angina (chest pain)." },
+            { id: 6, module: "Medications", term: "Albuterol (ProAir, Ventolin)", definition: "Short-acting beta-2 agonist (SABA). Used as a rescue inhaler for asthma and bronchospasms." },
+            { id: 7, module: "Medications", term: "Omeprazole (Prilosec)", definition: "Proton Pump Inhibitor (PPI). Reduces stomach acid. Used for GERD, ulcers, and heartburn." },
+            { id: 8, module: "Medications", term: "Gabapentin (Neurontin)", definition: "Anticonvulsant / Nerve pain medication. Used to treat seizures and neuropathic pain." },
+            
+            // MODULE 2: Federal Requirements
+            { id: 9, module: "Federal Requirements", term: "DEA Form 222", definition: "Official document required by the federal government for ordering, transferring, or returning Schedule I and II controlled substances." },
+            { id: 10, module: "Federal Requirements", term: "DEA Form 106", definition: "Used to report the theft or significant loss of controlled substances to the DEA." },
+            { id: 11, module: "Federal Requirements", term: "HIPAA (1996)", definition: "Health Insurance Portability and Accountability Act. Federal law protecting patient health information (PHI) from being disclosed without patient consent." },
+            { id: 12, module: "Federal Requirements", term: "OBRA '90", definition: "Omnibus Budget Reconciliation Act of 1990. Requires pharmacists to offer counseling to Medicaid patients regarding their medications." },
+            { id: 13, module: "Federal Requirements", term: "Controlled Substance Schedules", definition: "CI: No accepted medical use (Heroin). CII: High abuse potential (Oxycodone, Adderall). CIII: Moderate abuse (Testosterone). CIV: Low abuse (Alprazolam). CV: Lowest abuse (Robitussin AC)." },
+            { id: 14, module: "Federal Requirements", term: "C-II Prescription Rules", definition: "Under federal law, C-II prescriptions cannot be refilled and are valid for 6 months (though state laws are often stricter, making them valid for less time)." },
+            { id: 15, module: "Federal Requirements", term: "Poison Prevention Packaging Act (1970)", definition: "Requires child-resistant containers for most prescription drugs. Exceptions include sublingual nitroglycerin and certain oral contraceptives." },
+
+            // MODULE 3: Patient Safety and Quality Assurance
+            { id: 16, module: "Patient Safety", term: "Tall Man Lettering", definition: "FDA-approved typographic technique (e.g., predniSONE vs predniSOLONE) used to distinguish Look-Alike, Sound-Alike (LASA) medications." },
+            { id: 17, module: "Patient Safety", term: "ISMP", definition: "Institute for Safe Medication Practices. A nonprofit organization devoted entirely to preventing medication errors. Publishes the 'Do Not Use' abbreviation list." },
+            { id: 18, module: "Patient Safety", term: "MedWatch", definition: "The FDA's adverse event reporting program. Voluntary for healthcare professionals and consumers to report serious side effects and product quality problems." },
+            { id: 19, module: "Patient Safety", term: "High-Alert Medications", definition: "Drugs that bear a heightened risk of causing significant patient harm when used in error (e.g., Insulin, Heparin, Opioids, Potassium Chloride injections)." },
+            { id: 20, module: "Patient Safety", term: "Root Cause Analysis (RCA)", definition: "A retrospective process used in pharmacies and hospitals to identify the fundamental cause of a medication error after it has occurred to prevent future incidents." },
+
+            // MODULE 4: Order Entry and Processing
+            { id: 21, module: "Order Entry and Processing", term: "DAW Codes", definition: "Dispense As Written. DAW 0 = No product selection indicated (generic allowed). DAW 1 = Substitution not allowed by prescriber. DAW 2 = Substitution allowed, patient requested brand." },
+            { id: 22, module: "Order Entry and Processing", term: "Sig Code: bid, tid, qid", definition: "bid = twice a day. tid = three times a day. qid = four times a day." },
+            { id: 23, module: "Order Entry and Processing", term: "Sig Code: ac, pc", definition: "ac = before meals (ante cibum). pc = after meals (post cibum)." },
+            { id: 24, module: "Order Entry and Processing", term: "Sig Code: prn", definition: "As needed (pro re nata)." },
+            { id: 25, module: "Order Entry and Processing", term: "Sig Code: gtt, au, ou", definition: "gtt = drop. au = both ears. ou = both eyes." },
+            { id: 26, module: "Order Entry and Processing", term: "BIN Number", definition: "Bank Identification Number. A 6-digit number on a health insurance card used to route a prescription claim to the correct Pharmacy Benefit Manager (PBM)." },
+
+            // MODULE 5: Pharmacy Math/Calculations
+            { id: 27, module: "Pharmacy Math", term: "Volume Conversions", definition: "1 teaspoon (tsp) = 5 mL. 1 tablespoon (tbsp) = 15 mL. 1 fluid ounce (oz) = 30 mL." },
+            { id: 28, module: "Pharmacy Math", term: "Weight Conversions", definition: "1 kilogram (kg) = 2.2 pounds (lb). 1 grain (gr) = 64.8 mg (often rounded to 65 mg in standard pharmacy practice)." },
+            { id: 29, module: "Pharmacy Math", term: "Temperature Conversion", definition: "Celsius to Fahrenheit: F = (C x 1.8) + 32. Fahrenheit to Celsius: C = (F - 32) / 1.8." },
+            { id: 30, module: "Pharmacy Math", term: "Clark's Rule (Pediatrics)", definition: "Formula for calculating child's dose based on weight: (Child's Weight in lbs / 150) x Adult Dose." },
+            { id: 31, module: "Pharmacy Math", term: "Young's Rule (Pediatrics)", definition: "Formula for calculating child's dose based on age: (Child's Age in years / (Child's Age + 12)) x Adult Dose." },
+            { id: 32, module: "Pharmacy Math", term: "Alligation", definition: "A mathematical method used to calculate the proportion of two solutions of different strengths required to make a desired strength." }
+        ];
+
+        // Group data for the Modules view
+        const modulesData = {
+            "Medications": ptcbData.filter(item => item.module === "Medications"),
+            "Federal Requirements": ptcbData.filter(item => item.module === "Federal Requirements"),
+            "Patient Safety": ptcbData.filter(item => item.module === "Patient Safety"),
+            "Order Entry and Processing": ptcbData.filter(item => item.module === "Order Entry and Processing"),
+            "Pharmacy Math": ptcbData.filter(item => item.module === "Pharmacy Math")
+        };
+
+        // --- 2. APPLICATION STATE & LOGIC ---
+        const app = {
+            dailyDeck: [],
+            currentCardIndex: 0,
+            isCardFlipped: false,
+
+            init() {
+                // Shuffle data for daily review
+                this.dailyDeck = this.shuffleArray([...ptcbData]);
+                this.updateDailyCard();
+                this.buildModulesGrid();
+                
+                // Show default tab
+                this.switchTab('daily');
+            },
+
+            // --- Navigation Logic ---
+            switchTab(tabId) {
+                // Update Nav UI
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    const icon = btn.querySelector('i');
+                    if (btn.dataset.target === tabId) {
+                        btn.classList.remove('text-slate-400', 'hover:text-slate-600');
+                        btn.classList.add('text-blue-600');
+                    } else {
+                        btn.classList.add('text-slate-400', 'hover:text-slate-600');
+                        btn.classList.remove('text-blue-600');
+                    }
+                });
+
+                // Update Header
+                const titles = {
+                    'daily': 'Daily Review',
+                    'modules': 'Study Modules',
+                    'search': 'Search Database'
+                };
+                document.getElementById('header-subtitle').innerText = titles[tabId];
+
+                // Update Views
+                document.getElementById('view-daily').classList.add('hidden');
+                document.getElementById('view-modules').classList.add('hidden');
+                document.getElementById('view-search').classList.add('hidden');
+                
+                // Show active
+                document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+                // If going to search, auto focus (optional, sometimes annoying on mobile but good UX generally)
+                if(tabId === 'search') {
+                    setTimeout(() => document.getElementById('search-input').focus(), 100);
+                }
+            },
+
+            // --- Daily Review Logic ---
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            },
+
+            updateDailyCard() {
+                const card = this.dailyDeck[this.currentCardIndex];
+                document.getElementById('fc-category').innerText = card.module;
+                document.getElementById('fc-question').innerText = card.term;
+                document.getElementById('fc-answer').innerText = card.definition;
+                
+                document.getElementById('fc-counter').innerText = this.currentCardIndex + 1;
+                document.getElementById('fc-total').innerText = this.dailyDeck.length;
+                
+                // Ensure card is front-facing
+                this.isCardFlipped = false;
+                document.getElementById('flashcard').classList.remove('flipped');
+            },
+
+            flipCard() {
+                const cardEl = document.getElementById('flashcard');
+                this.isCardFlipped = !this.isCardFlipped;
+                if (this.isCardFlipped) {
+                    cardEl.classList.add('flipped');
+                } else {
+                    cardEl.classList.remove('flipped');
+                }
+            },
+
+            nextCard() {
+                // unflip first
+                this.flipCard();
+                
+                // wait for animation before changing content
+                setTimeout(() => {
+                    this.currentCardIndex++;
+                    if (this.currentCardIndex >= this.dailyDeck.length) {
+                        // Reshuffle if at the end
+                        this.dailyDeck = this.shuffleArray([...ptcbData]);
+                        this.currentCardIndex = 0;
+                    }
+                    this.updateDailyCard();
+                }, 300); // 300ms matches css transition roughly
+            },
+
+            // --- Study Modules Logic ---
+            buildModulesGrid() {
+                const container = document.getElementById('module-list');
+                container.innerHTML = '';
+                
+                const icons = {
+                    "Medications": "fa-pills",
+                    "Federal Requirements": "fa-scale-balanced",
+                    "Patient Safety": "fa-shield-heart",
+                    "Order Entry and Processing": "fa-desktop",
+                    "Pharmacy Math": "fa-calculator"
+                };
+
+                for (const [moduleName, items] of Object.entries(modulesData)) {
+                    const count = items.length;
+                    const iconClass = icons[moduleName] || "fa-book";
+
+                    const cardHTML = `
+                        <button onclick="app.openModule('${moduleName}')" class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm text-left hover:shadow-md hover:border-blue-300 transition-all flex flex-col h-full w-full">
+                            <div class="bg-blue-50 text-blue-600 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                                <i class="fa-solid ${iconClass} text-xl"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-800 mb-1 leading-tight">${moduleName}</h3>
+                            <p class="text-sm text-slate-500 mt-auto">${count} items</p>
+                        </button>
+                    `;
+                    container.innerHTML += cardHTML;
+                }
+            },
+
+            openModule(moduleName) {
+                document.getElementById('module-list').classList.add('hidden');
+                document.getElementById('module-details').classList.remove('hidden');
+                
+                document.getElementById('active-module-title').innerText = moduleName;
+                
+                const items = modulesData[moduleName];
+                const container = document.getElementById('module-items-container');
+                container.innerHTML = '';
+                
+                items.forEach(item => {
+                    container.innerHTML += `
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                            <h4 class="font-bold text-slate-800 text-lg mb-2 selectable-text">${item.term}</h4>
+                            <p class="text-slate-600 text-sm leading-relaxed selectable-text">${item.definition}</p>
+                        </div>
+                    `;
+                });
+                
+                // Scroll to top of the content area
+                document.getElementById('main-content').scrollTop = 0;
+            },
+
+            showModuleList() {
+                document.getElementById('module-details').classList.add('hidden');
+                document.getElementById('module-list').classList.remove('hidden');
+            },
+
+            // --- Search Logic ---
+            handleSearch() {
+                const query = document.getElementById('search-input').value.toLowerCase();
+                const btn = document.getElementById('clear-search-btn');
+                
+                if (query.length > 0) {
+                    btn.classList.remove('hidden');
+                } else {
+                    btn.classList.add('hidden');
+                }
+
+                const resultsContainer = document.getElementById('search-results');
+                
+                if (query.trim() === '') {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center text-slate-400 mt-10">
+                            <i class="fa-solid fa-book-medical text-4xl mb-3 opacity-50"></i>
+                            <p>Type to search the PTCE database.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Filter Data
+                const results = ptcbData.filter(item => 
+                    item.term.toLowerCase().includes(query) || 
+                    item.definition.toLowerCase().includes(query) ||
+                    item.module.toLowerCase().includes(query)
+                );
+
+                // Render Results
+                resultsContainer.innerHTML = '';
+                if (results.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center text-slate-500 mt-10 p-4">
+                            <i class="fa-solid fa-ghost text-3xl mb-2 opacity-50"></i>
+                            <p>No matches found for "${query}"</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                results.forEach(item => {
+                    // Highlight logic (basic)
+                    const regex = new RegExp(`(${query})`, 'gi');
+                    const highlightedTerm = item.term.replace(regex, '<span class="bg-yellow-200 text-slate-900">$1</span>');
+                    
+                    resultsContainer.innerHTML += `
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-1 block">${item.module}</span>
+                            <h4 class="font-bold text-slate-800 text-lg mb-2 selectable-text">${highlightedTerm}</h4>
+                            <p class="text-slate-600 text-sm leading-relaxed selectable-text">${item.definition}</p>
+                        </div>
+                    `;
+                });
+            },
+
+            clearSearch() {
+                const input = document.getElementById('search-input');
+                input.value = '';
+                this.handleSearch();
+                input.focus();
+            }
+        };
+
+        // Initialize application on load
+        window.onload = () => {
+            app.init();
+        };
+
+    </script>
+</body>
+</html>
